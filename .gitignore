@@ -1,0 +1,55 @@
+# --- Qt / Qt Creator ---
+*.pro.user
+*.pro.user.*
+*.qbs.user
+*.qbs.user.*
+CMakeLists.txt.user*
+.qtcreator/
+.qtc_clangd/
+
+# --- CMake / build ---
+build/
+build-*/
+*-build/
+*build-*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# --- Qt autogen (MOC, UIC, RCC) ---
+*_autogen/
+moc_*.cpp
+moc_*.h
+ui_*.h
+qrc_*.cpp
+*.qm
+
+# --- Binaries & object files ---
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dll
+*.dylib
+*.exe
+
+# --- IDE / edytor ---
+*.code-workspace
+Wylesianie.code-workspace
+.vscode/
+.idea/
+
+# --- System ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Tymczasowe / backup ---
+*~
+*.autosave
+*.tmp
+*.swp
