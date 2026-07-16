@@ -42,11 +42,21 @@ qrc_*.cpp
 Wylesianie.code-workspace
 .vscode/
 .idea/
+.cursor/
 
 # --- System ---
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# --- Backend (Python) ---
+backend/.venv/
+backend/venv/
+backend/env.txt
+backend/__pycache__/
+backend/**/__pycache__/
+*.pyc
+.Python
 
 # --- Tymczasowe / backup ---
 *~

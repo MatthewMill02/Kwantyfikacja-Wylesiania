@@ -69,19 +69,29 @@ Po zakończeniu analizy aplikacja powinna prezentować:
 
 Katalog `build/` jest generowany lokalnie przez Qt Creator i nie trafia do repozytorium (patrz `.gitignore`).
 
+## Architektura (frontend / backend)
+
+| Warstwa | Odpowiedzialność |
+|---------|------------------|
+| **Frontend (ten projekt)** | Formularz, progress, renderowanie kompozycji pixel-by-pixel w C++, suwaki progów, toggle chmur |
+| **Backend (FastAPI + GEE)** | Pobranie Sentinel-2, maskowanie chmur, surowe pasma / PPM — kontrakt `POST /analiza` |
+
+Na razie frontend działa w **trybie mock** (`BackendClient::setUseMock(true)`): symuluje postęp i generuje syntetyczne pasma B2/B3/B4/B8. Po podłączeniu backendu wystarczy wyłączyć mock.
+
 ## Struktura projektu
 
 ```
 Wylesianie/
-├── CMakeLists.txt      # konfiguracja CMake
-├── main.cpp            # punkt wejścia aplikacji
-├── mainwindow.h        # nagłówek głównego okna
-├── mainwindow.cpp      # logika głównego okna
-├── mainwindow.ui       # layout z Qt Designer
+├── CMakeLists.txt
+├── main.cpp / mainwindow.* / mainwindow.ui   # QStackedWidget: formularz → progress → wyniki
+├── models/          # AnalysisRequest, AnalysisResult, BandBuffer
+├── network/         # BackendClient (HTTP + mock)
+├── processing/      # ImageRenderer, MockDataGenerator
+├── widgets/         # ImagePanelWidget, ResultsViewWidget
 ├── README.md
 └── .gitignore
 ```
 
 ## Status
 
-Projekt jest we wczesnej fazie rozwoju — szkielet aplikacji Qt Widgets. Kolejne etapy obejmują integrację danych satelitarnych, moduły przetwarzania obrazu (NDVI, maskowanie chmur, progowanie) oraz komponenty wizualizacji wyników.
+Działa pełny przepływ UI z lokalnym renderowaniem True/False Color, własnej zieleni, maski wylesień, pasm B4/B8 oraz ich średniej. Integracja z prawdziwym backendem GEE — kolejny etap.

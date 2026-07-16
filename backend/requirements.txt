@@ -1,0 +1,5 @@
+# Zależności backendu FastAPI + Google Earth Engine
+fastapi
+uvicorn[standard]
+earthengine-api
+pydantic
