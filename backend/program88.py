@@ -12,7 +12,7 @@ from pydantic import BaseModel
 import time
 from fastapi.middleware.cors import CORSMiddleware
 
-
+ee.Authenticate()
 app = FastAPI(title = "API")
 
 app.add_middleware(CORSMiddleware, allow_origins = ["*"], allow_credentials = True, allow_methods = ["*"], allow_headers = ["*"])

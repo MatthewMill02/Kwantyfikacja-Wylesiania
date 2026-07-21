@@ -37,11 +37,12 @@ bool AnalysisRequest::isValid(QString *errorMessage) const
         }
         return false;
     }
-    if (x >= xx || y <= yy) {
+    // ee.Geometry.Rectangle([X, Y, XX, YY]) = [xmin, ymin, xmax, ymax]
+    if (x >= xx || y >= yy) {
         if (errorMessage) {
             *errorMessage = QStringLiteral(
-                "Błędny bbox: oczekiwany lewy górny (X,Y) i prawy dolny (XX,YY), "
-                "gdzie X < XX oraz Y > YY (szerokość geograficzna maleje na południe).");
+                "Błędny bbox: oczekiwane X < XX oraz Y < YY "
+                "(Rectangle: xmin, ymin, xmax, ymax).");
         }
         return false;
     }
