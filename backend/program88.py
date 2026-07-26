@@ -73,7 +73,7 @@ def analiza(req: ANALIZA):
     DANE = {}
 
     ROK = req.POCZATEK
-    while ROK < req.KONIEC:
+    while ROK <= req.KONIEC:
         DANE.update(pobierzdane(ROK, OBSZAR, CHMURY = True))
         DANE.update(pobierzdane(ROK, OBSZAR, CHMURY = False))
 

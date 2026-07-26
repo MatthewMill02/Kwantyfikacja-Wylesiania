@@ -9,8 +9,12 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network)
+
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network Charts)
+
+
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Charts)
+
 
 set(PROJECT_SOURCES
     main.cpp
@@ -63,6 +67,11 @@ target_include_directories(Wylesianie PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(Wylesianie PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Network
+
+
+    Qt${QT_VERSION_MAJOR}::Charts
+
+
 )
 
 if(${QT_VERSION} VERSION_LESS 6.1.0)

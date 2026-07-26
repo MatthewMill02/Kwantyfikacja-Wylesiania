@@ -16,6 +16,19 @@
 #include <QSlider>
 #include <QVBoxLayout>
 
+
+#include <QPainter>
+#include <QColor>
+
+
+#include <QtCharts/QBarCategoryAxis>
+#include <QtCharts/QBarSeries>
+#include <QtCharts/QBarSet>
+#include <QtCharts/QChart>
+#include <QtCharts/QChartView>
+#include <QtCharts/QValueAxis>
+
+
 namespace {
 
 QSlider *makePercentSlider(int min, int max, int value, QWidget *parent)
@@ -51,27 +64,40 @@ void ResultsViewWidget::buildUi()
     scroll->setWidgetResizable(true);
     scroll->setFrameShape(QFrame::NoFrame);
 
-    auto *gridHost = new QWidget(scroll);
-    auto *grid = new QGridLayout(gridHost);
-    grid->setSpacing(8);
 
-    m_trueColor = new ImagePanelWidget(QStringLiteral("True Color"), gridHost);
-    m_falseColor = new ImagePanelWidget(QStringLiteral("False Color"), gridHost);
-    m_customVegetation = new ImagePanelWidget(QStringLiteral("False Color (zieleń)"), gridHost);
-    m_deforestationMask = new ImagePanelWidget(QStringLiteral("Maska wylesień"), gridHost);
-    m_bandB4 = new ImagePanelWidget(QStringLiteral("Pasmo B4 (Red)"), gridHost);
-    m_bandB8 = new ImagePanelWidget(QStringLiteral("Pasmo B8 (NIR)"), gridHost);
-    m_bandAverage = new ImagePanelWidget(QStringLiteral("Średnia B4 + B8"), gridHost);
+    auto *GRIDHOST = new QWidget(scroll);
+    auto *GRIDHOSTLAYOUT = new QVBoxLayout(GRIDHOST);
+    GRIDHOSTLAYOUT->setSpacing(8);
+    auto *GRIDHOSTHOST = new QWidget(GRIDHOST);
+    auto *GRID = new QGridLayout(GRIDHOSTHOST);
 
-    grid->addWidget(m_trueColor, 0, 0);
-    grid->addWidget(m_falseColor, 0, 1);
-    grid->addWidget(m_customVegetation, 0, 2);
-    grid->addWidget(m_deforestationMask, 1, 0);
-    grid->addWidget(m_bandB4, 1, 1);
-    grid->addWidget(m_bandB8, 1, 2);
-    grid->addWidget(m_bandAverage, 2, 0);
 
-    scroll->setWidget(gridHost);
+    GRID->setSpacing(8);
+
+    m_trueColor = new ImagePanelWidget(QStringLiteral("True Color"), GRIDHOST);
+    m_falseColor = new ImagePanelWidget(QStringLiteral("False Color"), GRIDHOST);
+    m_customVegetation = new ImagePanelWidget(QStringLiteral("False Color (zieleń)"), GRIDHOST);
+    m_deforestationMask = new ImagePanelWidget(QStringLiteral("Maska wylesień"), GRIDHOST);
+    m_bandB4 = new ImagePanelWidget(QStringLiteral("Pasmo B4 (Red)"), GRIDHOST);
+    m_bandB8 = new ImagePanelWidget(QStringLiteral("Pasmo B8 (NIR)"), GRIDHOST);
+    m_bandAverage = new ImagePanelWidget(QStringLiteral("Średnia B4 + B8"), GRIDHOST);
+
+    GRID->addWidget(m_trueColor, 0, 0);
+    GRID->addWidget(m_falseColor, 0, 1);
+    GRID->addWidget(m_customVegetation, 0, 2);
+    GRID->addWidget(m_deforestationMask, 1, 0);
+    GRID->addWidget(m_bandB4, 1, 1);
+    GRID->addWidget(m_bandB8, 1, 2);
+    GRID->addWidget(m_bandAverage, 2, 0);
+
+
+    GRIDHOSTLAYOUT->addWidget(GRIDHOSTHOST);
+    CHARTVIEW = new QChartView(GRIDHOST);
+    CHARTVIEW->setMinimumHeight(256);
+    GRIDHOSTLAYOUT->addWidget(CHARTVIEW);
+
+
+    scroll->setWidget(GRIDHOST);
     root->addWidget(scroll, 1);
 
     auto *side = new QVBoxLayout();
@@ -99,6 +125,12 @@ void ResultsViewWidget::buildUi()
         QStringLiteral("Przełącza wszystkie grafiki (oprócz maski wylesień) na wersje z chmurami (*_CHM)."));
     connect(m_cloudsToggle, &QCheckBox::toggled, this, &ResultsViewWidget::onCloudsToggled);
     side->addWidget(m_cloudsToggle);
+
+
+    m_deforestationToggle = new QCheckBox(QStringLiteral("Nałóż maskę wylesień"), this);
+    connect(m_deforestationToggle, &QCheckBox::toggled, this, &ResultsViewWidget::onDeforestationToggled);
+    side->addWidget(m_deforestationToggle);
+
 
     auto *vegBox = new QGroupBox(QStringLiteral("Progi roślinności (0–1)"), this);
     auto *vegForm = new QFormLayout(vegBox);
@@ -169,6 +201,12 @@ void ResultsViewWidget::setResult(const AnalysisResult &result, const AnalysisRe
     m_request = request;
     m_showClouds = false;
     m_cloudsToggle->setChecked(false);
+
+
+    m_showDeforestation = false;
+    m_deforestationToggle->setChecked(false);
+
+
     refillYearCombo();
     syncSlidersFromRequest();
     rerender();
@@ -186,6 +224,11 @@ void ResultsViewWidget::clear()
     m_bandB8->clearImage();
     m_bandAverage->clearImage();
     m_hectaresLabel->setText(QStringLiteral("Utrata lasu: — ha"));
+
+
+    updatechart();
+
+
 }
 
 void ResultsViewWidget::syncSlidersFromRequest()
@@ -264,6 +307,7 @@ const YearBands *ResultsViewWidget::activeYear() const
     return m_result.bandsFor(m_selectedYear);
 }
 
+
 void ResultsViewWidget::rerender()
 {
     if (!m_result.isValid()) {
@@ -275,36 +319,25 @@ void ResultsViewWidget::rerender()
         return;
     }
 
-    const BandBuffer &b2 = m_showClouds ? year->b2Clouds : year->b2;
-    const BandBuffer &b3 = m_showClouds ? year->b3Clouds : year->b3;
-    const BandBuffer &b4 = m_showClouds ? year->b4Clouds : year->b4;
-    const BandBuffer &b8 = m_showClouds ? year->b8Clouds : year->b8;
-
-    m_trueColor->setImage(ImageRenderer::trueColor(b2, b3, b4));
-    m_falseColor->setImage(ImageRenderer::falseColor(b3, b4, b8));
-
-    const BandBuffer ndvi = BandBuffer::ndvi(b4, b8);
-    m_customVegetation->setImage(ImageRenderer::customVegetation(
-        ndvi,
-        m_request.vegetationSparse,
-        m_request.vegetationModerate,
-        m_request.vegetationDense));
-
+    QImage maskImage;
     const int y1 = m_result.firstYear();
-    const int y2 = m_result.lastYear();
+    const int y2 = m_selectedYear;
     const YearBands *t1 = m_result.bandsFor(y1);
     const YearBands *t2 = m_result.bandsFor(y2);
 
     if (t1 && t2 && y1 != y2) {
         const BandBuffer ndviT1 = BandBuffer::ndvi(t1->b4, t1->b8);
         const BandBuffer ndviT2 = BandBuffer::ndvi(t2->b4, t2->b8);
-        m_deforestationMask->setImage(ImageRenderer::deforestationMask(
+
+        maskImage = ImageRenderer::deforestationMask(
             ndviT1, ndviT2,
             m_request.deforestationPartial,
-            m_request.deforestationStrong));
+            m_request.deforestationStrong);
+
+        m_deforestationMask->setImage(maskImage);
 
         const BandBuffer *area = m_result.pixelAreaM2.isEmpty() ? nullptr
-                                                               : &m_result.pixelAreaM2;
+                                                                : &m_result.pixelAreaM2;
         const double ha = ImageRenderer::hectaresFromMask(
             ndviT1, ndviT2, m_request.deforestationPartial, area);
         m_hectaresLabel->setText(
@@ -317,8 +350,118 @@ void ResultsViewWidget::rerender()
         m_hectaresLabel->setText(QStringLiteral("Utrata lasu: — (za mało lat)"));
     }
 
-    m_bandB4->setImage(ImageRenderer::grayscaleBand(b4));
-    m_bandB8->setImage(ImageRenderer::grayscaleBand(b8));
-    m_bandAverage->setImage(
-        ImageRenderer::grayscaleBand(BandBuffer::average(b4, b8)));
+    QImage transparentMask;
+    if (m_showDeforestation && !maskImage.isNull()) {
+        transparentMask = maskImage.convertToFormat(QImage::Format_ARGB32);
+
+        int y = 0;
+        while (y < transparentMask.height()) {
+            int x = 0;
+            while (x < transparentMask.width()) {
+                QColor c = transparentMask.pixelColor(x, y);
+
+                if (c.red() > 127) {
+                    c.setAlpha(255);
+                    transparentMask.setPixelColor(x, y, c);
+                } else {
+                    transparentMask.setPixelColor(x, y, Qt::transparent);
+                }
+
+                x = x + 1;
+            }
+            y = y + 1;
+        }
+    }
+
+    auto applyMask = [&](const QImage &baseImage) {
+        if (!m_showDeforestation) {
+            return baseImage;
+        }
+
+        QImage result = baseImage.convertToFormat(QImage::Format_ARGB32);
+        QPainter painter(&result);
+
+        painter.drawImage(0, 0, transparentMask);
+        return result;
+    };
+
+    const BandBuffer &b2 = m_showClouds ? year->b2Clouds : year->b2;
+    const BandBuffer &b3 = m_showClouds ? year->b3Clouds : year->b3;
+    const BandBuffer &b4 = m_showClouds ? year->b4Clouds : year->b4;
+    const BandBuffer &b8 = m_showClouds ? year->b8Clouds : year->b8;
+
+    m_trueColor->setImage(applyMask(ImageRenderer::trueColor(b2, b3, b4)));
+    m_falseColor->setImage(applyMask(ImageRenderer::falseColor(b3, b4, b8)));
+
+    const BandBuffer ndvi = BandBuffer::ndvi(b4, b8);
+    m_customVegetation->setImage(applyMask(ImageRenderer::customVegetation(
+        ndvi,
+        m_request.vegetationSparse,
+        m_request.vegetationModerate,
+        m_request.vegetationDense)));
+
+    m_bandB4->setImage(applyMask(ImageRenderer::grayscaleBand(b4)));
+    m_bandB8->setImage(applyMask(ImageRenderer::grayscaleBand(b8)));
+    m_bandAverage->setImage(applyMask(
+        ImageRenderer::grayscaleBand(BandBuffer::average(b4, b8))));
+
+
+    updatechart();
+
+
+}
+
+
+void ResultsViewWidget::updatechart()
+{
+    auto *CHART = new QChart();
+    CHART->setTitle(QStringLiteral("Utrata lasu"));
+
+    const int YY = m_result.firstYear();
+    const YearBands *FIRSTYEAR = m_result.bandsFor(YY);
+
+    const BandBuffer FIRSTNDVI = BandBuffer::ndvi(FIRSTYEAR->b4, FIRSTYEAR->b8);
+    const BandBuffer *AREA;
+    if (m_result.pixelAreaM2.isEmpty()) {
+        AREA = nullptr;
+    } else {
+        AREA = &m_result.pixelAreaM2;
+    }
+    const double THRESHOLD = m_request.deforestationPartial;
+
+    auto *BARSET = new QBarSet(QStringLiteral("hektary"));
+    QStringList YEARSYEARS;
+
+    int YEAR = YY + 1;
+    while (m_result.availableYears().contains(YEAR)) {
+        YEARSYEARS << QString::number(YEAR);
+        double HA = 0.0;
+        const YearBands *NEXTYEAR = m_result.bandsFor(YEAR);
+        const BandBuffer NEXTNDVI = BandBuffer::ndvi(NEXTYEAR->b4, NEXTYEAR->b8);
+        HA = ImageRenderer::hectaresFromMask(FIRSTNDVI, NEXTNDVI, THRESHOLD, AREA);
+        *BARSET << HA;
+        YEAR = YEAR + 1;
+    }
+
+    auto *SERIES = new QBarSeries();
+    SERIES->append(BARSET);
+    CHART->addSeries(SERIES);
+
+    auto *AXISX = new QBarCategoryAxis();
+    AXISX->append(YEARSYEARS);
+    CHART->addAxis(AXISX, Qt::AlignBottom);
+    SERIES->attachAxis(AXISX);
+
+    auto *AXISY = new QValueAxis();
+    CHART->addAxis(AXISY, Qt::AlignLeft);
+    SERIES->attachAxis(AXISY);
+
+    CHARTVIEW->setChart(CHART);
+}
+
+
+void ResultsViewWidget::onDeforestationToggled(bool checked)
+{
+    m_showDeforestation = checked;
+    rerender();
 }

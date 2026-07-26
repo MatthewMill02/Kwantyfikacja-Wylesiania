@@ -12,6 +12,10 @@ class QComboBox;
 class QLabel;
 class QSlider;
 
+
+class QChartView;
+
+
 /**
  * Widok wyników: siatka kompozycji + suwaki progów + przełącznik chmur.
  * Przerysowuje lokalnie (C++) po zmianie suwaków / toggle.
@@ -35,6 +39,10 @@ private slots:
     void onCloudsToggled(bool checked);
     void onYearIndexChanged(int index);
 
+
+    void onDeforestationToggled(bool checked);
+
+
 private:
     void buildUi();
     void syncSlidersFromRequest();
@@ -42,12 +50,20 @@ private:
     void refillYearCombo();
     void rerender();
 
+
+    void updatechart();
+
+
     const YearBands *activeYear() const;
 
     AnalysisResult m_result;
     AnalysisRequest m_request;
     bool m_showClouds = false;
     int m_selectedYear = 0;
+
+
+    bool m_showDeforestation = false;
+
 
     ImagePanelWidget *m_trueColor = nullptr;
     ImagePanelWidget *m_falseColor = nullptr;
@@ -71,7 +87,16 @@ private:
     QLabel *m_strongValue = nullptr;
     QLabel *m_hectaresLabel = nullptr;
 
+
+    QChartView *CHARTVIEW = nullptr;
+
+
     QCheckBox *m_cloudsToggle = nullptr;
+
+
+    QCheckBox *m_deforestationToggle = nullptr;
+
+
 };
 
 #endif // RESULTSVIEWWIDGET_H
