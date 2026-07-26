@@ -1,25 +1,20 @@
-Backend — program88.py (FastAPI + Google Earth Engine)
-======================================================
+Backend — program9.py (FastAPI + GEE + streaming progresu)
+=======================================================
 
-Plik główny: program88.py
+Plik główny: program9.py
+Archiwum:   program88.py (bez streamingu — nieużywany przez start-backend.bat)
 
-1. Skopiuj env.txt.example → env.txt i wpisz nazwę projektu GEE
-   (https://code.earthengine.google.com/).
+1. Skopiuj env.txt.example → env.txt i wpisz nazwę projektu GEE.
 
-2. Z katalogu głównego projektu uruchom:
+2. Uruchom z katalogu głównego: start-backend.bat
 
-      start-backend.bat
+Endpoint: POST /analiza  (StreamingResponse, text/plain)
 
-   Serwer:     http://127.0.0.1:8000
-   Endpoint:   POST /analiza
-   Dokumentacja: http://127.0.0.1:8000/docs
+Protokół streamu (linie oddzielone \n):
+  1) Liczba lat: KONIEC - POCZATEK + 1
+  2) N × 2 komunikaty postępu (rok z chmurami / bez chmur)
+  3) „Pobrano dane o powierzchni.”
+  4) JSON wyniku: {"DANE": {...}, "POWIERZCHNIA": [...]}
 
-Kontrakt żądania (JSON):
-  POCZATEK, KONIEC, X, Y, XX, YY
-
-Kontrakt odpowiedzi:
-  DANE: { "{rok}_BEZ": {B2,B3,B4,B8}, "{rok}_CHM": {...}, ... }
-       lata z zakresu [POCZATEK, KONIEC)
-  POWIERZCHNIA: macierz m² na piksel
-
-Uwaga: frontend liczy NDVI, kompozycje i maskę wylesień lokalnie (C++).
+Frontend liczy postęp: (lata × 2 + 1) kroków informacyjnych,
+ostatnia linia to wynik końcowy (nie wlicza się do procentów).

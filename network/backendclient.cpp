@@ -8,6 +8,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QRegularExpression>
 
 namespace {
 
@@ -26,6 +27,12 @@ void finalizeHectares(AnalysisResult *result, const AnalysisRequest &request)
     const BandBuffer *area = result->pixelAreaM2.isEmpty() ? nullptr : &result->pixelAreaM2;
     result->hectaresDeforested = ImageRenderer::hectaresFromMask(
         ndvi1, ndvi2, request.deforestationPartial, area);
+}
+
+int expectedProgressSteps(int yearCount)
+{
+    // program9: lata × 2 (CHM + BEZ) + 1 (powierzchnia)
+    return yearCount * 2 + 1;
 }
 
 } // namespace
@@ -63,6 +70,11 @@ void BackendClient::cancel()
 {
     m_mockTimer.stop();
     m_mockProgress = 0;
+    m_streamBuffer.clear();
+    m_yearCountReceived = false;
+    m_totalYears = 0;
+    m_expectedSteps = 0;
+    m_completedSteps = 0;
 
     if (m_reply) {
         m_reply->abort();
@@ -73,7 +85,9 @@ void BackendClient::cancel()
 
 void BackendClient::startMock(const AnalysisRequest &request)
 {
-    Q_UNUSED(request);
+    m_totalYears = qMax(0, request.endYear - request.startYear + 1);
+    m_expectedSteps = expectedProgressSteps(m_totalYears);
+    m_completedSteps = 0;
     m_mockProgress = 0;
     emit progressChanged(0, QStringLiteral("Przygotowanie zapytania (mock)…"));
     m_mockTimer.start(80);
@@ -81,11 +95,26 @@ void BackendClient::startMock(const AnalysisRequest &request)
 
 void BackendClient::onMockTick()
 {
-    m_mockProgress += 4;
-    emit progressChanged(qMin(m_mockProgress, 99),
-                         QStringLiteral("Generowanie syntetycznych pasm…"));
+    ++m_completedSteps;
+    const int percent = m_expectedSteps > 0
+                            ? qMin(99, (m_completedSteps * 100) / m_expectedSteps)
+                            : qMin(m_mockProgress += 4, 99);
 
-    if (m_mockProgress >= 100) {
+    QString stage;
+    if (m_completedSteps <= m_totalYears * 2) {
+        const int pairIndex = (m_completedSteps - 1) / 2;
+        const int year = m_pendingRequest.startYear + pairIndex;
+        const bool withClouds = (m_completedSteps % 2 == 1);
+        stage = withClouds
+                    ? QStringLiteral("Pobrano dane dla roku %1 z chmurami (mock)…").arg(year)
+                    : QStringLiteral("Pobrano dane dla roku %1 bez chmur (mock)…").arg(year);
+    } else {
+        stage = QStringLiteral("Pobrano dane o powierzchni (mock)…");
+    }
+
+    emit progressChanged(percent, stage);
+
+    if (m_completedSteps >= m_expectedSteps) {
         m_mockTimer.stop();
         emit progressChanged(100, QStringLiteral("Gotowe"));
         AnalysisResult result = MockDataGenerator::generate(m_pendingRequest);
@@ -96,23 +125,94 @@ void BackendClient::onMockTick()
 
 void BackendClient::startHttp(const AnalysisRequest &request)
 {
+    Q_UNUSED(request);
+
+    m_streamBuffer.clear();
+    m_yearCountReceived = false;
+    m_totalYears = 0;
+    m_expectedSteps = 0;
+    m_completedSteps = 0;
+
     const QUrl url(m_baseUrl + QStringLiteral("/analiza"));
     QNetworkRequest netRequest(url);
     netRequest.setHeader(QNetworkRequest::ContentTypeHeader,
                          QStringLiteral("application/json"));
-
-    // GEE potrafi liczyć długo — bez twardego limitu (0 = wyłączony w Qt 6)
 #if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
     netRequest.setTransferTimeout(0);
 #endif
 
-    const QByteArray body = QJsonDocument(request.toJson()).toJson(QJsonDocument::Compact);
+    const QByteArray body = QJsonDocument(m_pendingRequest.toJson()).toJson(QJsonDocument::Compact);
     m_reply = m_network->post(netRequest, body);
+    connect(m_reply, &QNetworkReply::readyRead, this, &BackendClient::onNetworkReadyRead);
     connect(m_reply, &QNetworkReply::finished, this, &BackendClient::onNetworkFinished);
 
-    // Progres procentowy z backendu przyjdzie później — na razie tylko komunikat
-    emit progressChanged(-1, QStringLiteral(
-        "Wysłano żądanie do backendu (GEE). To może potrwać kilka minut…"));
+    emit progressChanged(0, QStringLiteral("Łączenie z backendem (GEE)…"));
+}
+
+void BackendClient::onNetworkReadyRead()
+{
+    if (!m_reply) {
+        return;
+    }
+
+    m_streamBuffer.append(m_reply->readAll());
+
+    int newlineIndex = m_streamBuffer.indexOf('\n');
+    while (newlineIndex >= 0) {
+        const QByteArray line = m_streamBuffer.left(newlineIndex).trimmed();
+        m_streamBuffer.remove(0, newlineIndex + 1);
+        if (!line.isEmpty()) {
+            processStreamLine(line);
+        }
+        newlineIndex = m_streamBuffer.indexOf('\n');
+    }
+}
+
+void BackendClient::processStreamLine(const QByteArray &line)
+{
+    // Ostatnia linia — JSON wyniku
+    if (line.startsWith('{')) {
+        finishWithJson(line);
+        return;
+    }
+
+    // Pierwsza linia — liczba lat (KONIEC - POCZATEK + 1)
+    static const QRegularExpression yearCountRe(QStringLiteral("^\\d+$"));
+    if (!m_yearCountReceived && yearCountRe.match(QString::fromUtf8(line)).hasMatch()) {
+        m_yearCountReceived = true;
+        m_totalYears = QString::fromUtf8(line).toInt();
+        m_expectedSteps = expectedProgressSteps(m_totalYears);
+        emit progressChanged(0,
+                             QStringLiteral("Pobieranie danych dla %1 lat…").arg(m_totalYears));
+        return;
+    }
+
+    // Komunikat postępu
+    ++m_completedSteps;
+    const int percent = m_expectedSteps > 0
+                            ? qMin(99, (m_completedSteps * 100) / m_expectedSteps)
+                            : -1;
+    emit progressChanged(percent, QString::fromUtf8(line));
+}
+
+void BackendClient::finishWithJson(const QByteArray &jsonBytes)
+{
+    QString parseError;
+    AnalysisResult result = AnalysisResponseParser::parse(jsonBytes, &parseError);
+    if (!result.isValid()) {
+        emit failed(parseError.isEmpty()
+                        ? QStringLiteral("Nie udało się sparsować wyniku backendu.")
+                        : parseError);
+        return;
+    }
+
+    finalizeHectares(&result, m_pendingRequest);
+    emit progressChanged(100, QStringLiteral("Gotowe"));
+    emit finished(result);
+
+    if (m_reply) {
+        m_reply->disconnect(this);
+    }
 }
 
 void BackendClient::onNetworkFinished()
@@ -129,7 +229,7 @@ void BackendClient::onNetworkFinished()
         if (reply->error() == QNetworkReply::ConnectionRefusedError) {
             message = QStringLiteral(
                 "Nie można połączyć się z backendem na %1.\n"
-                "Uruchom start-backend.bat i upewnij się, że działa uvicorn.")
+                "Uruchom start-backend.bat (program9) i upewnij się, że działa uvicorn.")
                           .arg(m_baseUrl);
         }
         emit failed(message);
@@ -137,19 +237,11 @@ void BackendClient::onNetworkFinished()
         return;
     }
 
-    const QByteArray payload = reply->readAll();
-    reply->deleteLater();
-
-    QString parseError;
-    AnalysisResult result = AnalysisResponseParser::parse(payload, &parseError);
-    if (!result.isValid()) {
-        emit failed(parseError.isEmpty()
-                        ? QStringLiteral("Nie udało się sparsować odpowiedzi backendu.")
-                        : parseError);
-        return;
+    // Reszta bufora bez końcowego \n
+    if (!m_streamBuffer.trimmed().isEmpty()) {
+        processStreamLine(m_streamBuffer.trimmed());
+        m_streamBuffer.clear();
     }
 
-    finalizeHectares(&result, m_pendingRequest);
-    emit progressChanged(100, QStringLiteral("Gotowe"));
-    emit finished(result);
+    reply->deleteLater();
 }

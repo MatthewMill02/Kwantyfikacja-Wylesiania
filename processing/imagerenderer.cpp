@@ -147,6 +147,24 @@ QImage ImageRenderer::grayscaleBand(const BandBuffer &band)
     return image;
 }
 
+QImage ImageRenderer::normalizedDifference(const BandBuffer &first, const BandBuffer &second)
+{
+    Q_ASSERT(first.width() == second.width() && first.height() == second.height());
+    QImage image = makeRgbImage(first.width(), first.height());
+
+    for (int y = 0; y < first.height(); ++y) {
+        for (int x = 0; x < first.width(); ++x) {
+            const float a = first.value(x, y);
+            const float b = second.value(x, y);
+            const float denom = a + b;
+            const float nd = (qAbs(denom) < 1e-6f) ? 0.0f : (a - b) / denom;
+            const int g = qBound(0, static_cast<int>((nd + 1.0f) * 127.5f + 0.5f), 255);
+            setPixel(image, x, y, g, g, g);
+        }
+    }
+    return image;
+}
+
 double ImageRenderer::hectaresFromMask(const BandBuffer &ndviT1,
                                        const BandBuffer &ndviT2,
                                        double partialThreshold,

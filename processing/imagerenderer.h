@@ -48,6 +48,12 @@ public:
     static QImage grayscaleBand(const BandBuffer &band);
 
     /**
+     * normalizedDifference (GEE): (first − second) / (first + second).
+     * Dla B8 i B4 daje NDVI; wartości −1…1 mapowane na skalę szarości.
+     */
+    static QImage normalizedDifference(const BandBuffer &first, const BandBuffer &second);
+
+    /**
      * Powierzchnia wylesienia w hektarach.
      * Jeśli podano pixelAreaM2 (z POWIERZCHNIA backendu) — sumuje m² zaznaczonych pikseli.
      * W przeciwnym razie zakłada stały rozmiar metersPerPixel × metersPerPixel.

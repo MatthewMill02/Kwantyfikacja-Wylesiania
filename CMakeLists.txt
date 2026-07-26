@@ -39,10 +39,20 @@ set(PROJECT_SOURCES
     processing/mockdatagenerator.cpp
     processing/mockdatagenerator.h
 
+    utils/geepixelbounds.cpp
+    utils/geepixelbounds.h
+
     widgets/imagepanelwidget.cpp
     widgets/imagepanelwidget.h
     widgets/resultsviewwidget.cpp
     widgets/resultsviewwidget.h
+    widgets/splitpanelwidget.cpp
+    widgets/splitpanelwidget.h
+    widgets/osmmapwidget.cpp
+    widgets/osmmapwidget.h
+
+    theme/apptheme.cpp
+    theme/apptheme.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

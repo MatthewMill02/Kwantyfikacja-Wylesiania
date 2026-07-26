@@ -1,5 +1,7 @@
 #include "analysisrequest.h"
 
+#include "utils/geepixelbounds.h"
+
 QJsonObject AnalysisRequest::toJson() const
 {
     // Kontrakt program88.py — wyłącznie te pola trafiają do POST /analiza
@@ -21,13 +23,13 @@ bool AnalysisRequest::isValid(QString *errorMessage) const
         }
         return false;
     }
-    // Backend pobiera lata [POCZATEK, KONIEC) — do maski ΔNDVI potrzeba ≥ 2 lat danych
-    if (endYear - startYear < 2) {
+    // program9: lata [POCZATEK, KONIEC] włącznie — min. 2 lata
+    if (endYear - startYear < 1) {
         if (errorMessage) {
             *errorMessage = QStringLiteral(
-                "Zakres musi obejmować co najmniej 2 lata danych "
-                "(backend pobiera lata od POCZATEK do KONIEC−1). "
-                "Np. 2018–2020 daje lata 2018 i 2019.");
+                "Zakres musi obejmować co najmniej 2 lata "
+                "(backend pobiera lata od POCZATEK do KONIEC włącznie). "
+                "Np. 2018–2019.");
         }
         return false;
     }
@@ -44,6 +46,9 @@ bool AnalysisRequest::isValid(QString *errorMessage) const
                 "Błędny bbox: oczekiwane X < XX oraz Y < YY "
                 "(Rectangle: xmin, ymin, xmax, ymax).");
         }
+        return false;
+    }
+    if (!GeePixelBounds::isWithinLimit(x, y, xx, yy, errorMessage)) {
         return false;
     }
     if (!(vegetationSparse < vegetationModerate

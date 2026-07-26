@@ -4,7 +4,9 @@
 # pip install fastapi
 # pip install uvicorn[standard]
 # pip install earthengine-api
-# Uruchom mnie za pomocą: uvicorn NAZWAPLIKUBEZKROPKAPY:app --reload
+# Uruchom mnie za pomocą: uvicorn program88:app --reload
+#
+# ARCHIWUM — wersja bez streamingu progresu. Aktywny backend: program9.py
 
 import ee
 from fastapi import FastAPI

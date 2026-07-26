@@ -4,6 +4,7 @@
 #include "models/analysisrequest.h"
 #include "models/analysisresult.h"
 
+#include <QByteArray>
 #include <QObject>
 #include <QString>
 #include <QTimer>
@@ -12,8 +13,8 @@ class QNetworkAccessManager;
 class QNetworkReply;
 
 /**
- * Klient HTTP do program88.py (POST /analiza).
- * Domyślnie łączy się z prawdziwym backendem; mock zostaje jako fallback offline.
+ * Klient HTTP do program9.py (POST /analiza, StreamingResponse).
+ * Progres: pierwsza linia = liczba lat; potem lata×2 + 1 komunikatów; na końcu JSON.
  */
 class BackendClient : public QObject
 {
@@ -38,11 +39,14 @@ signals:
 
 private slots:
     void onMockTick();
+    void onNetworkReadyRead();
     void onNetworkFinished();
 
 private:
     void startMock(const AnalysisRequest &request);
     void startHttp(const AnalysisRequest &request);
+    void processStreamLine(const QByteArray &line);
+    void finishWithJson(const QByteArray &jsonBytes);
 
     QNetworkAccessManager *m_network = nullptr;
     QNetworkReply *m_reply = nullptr;
@@ -51,6 +55,12 @@ private:
     int m_mockProgress = 0;
     bool m_useMock = false;
     QString m_baseUrl = QStringLiteral("http://127.0.0.1:8000");
+
+    QByteArray m_streamBuffer;
+    bool m_yearCountReceived = false;
+    int m_totalYears = 0;
+    int m_expectedSteps = 0;
+    int m_completedSteps = 0;
 };
 
 #endif // BACKENDCLIENT_H

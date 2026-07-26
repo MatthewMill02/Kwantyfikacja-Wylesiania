@@ -48,9 +48,6 @@
         </property>
         <item>
          <widget class="QLabel" name="labelTitle">
-          <property name="styleSheet">
-           <string notr="true">font-size: 20px; font-weight: 700;</string>
-          </property>
           <property name="text">
            <string>Automatyczna detekcja i kwantyfikacja wylesiania</string>
           </property>
@@ -62,7 +59,7 @@
         <item>
          <widget class="QLabel" name="labelSubtitle">
           <property name="text">
-           <string>Podaj przedział lat [POCZĄTEK, KONIEC) oraz bbox [X, Y, XX, YY] = [xmin, ymin, xmax, ymax]. Backend pobiera lata do KONIEC−1.</string>
+           <string>Podaj lata i obszar analizy — wpisz współrzędne lub zaznacz prostokąt na mapie (pinezki 1 i 2).</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -124,24 +121,19 @@
            </widget>
           </item>
           <item>
-           <spacer name="spacerTop">
-            <property name="orientation">
-             <enum>Qt::Orientation::Vertical</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>16</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item>
            <widget class="QGroupBox" name="groupBbox">
             <property name="title">
-             <string>Lokalizacja (bbox)</string>
+             <string>Obszar analizy</string>
             </property>
-            <layout class="QFormLayout" name="formBbox">
+            <layout class="QHBoxLayout" name="bboxMapLayout">
+             <property name="spacing">
+              <number>16</number>
+             </property>
+             <item>
+              <widget class="QWidget" name="bboxFieldsWidget" native="true">
+               <layout class="QVBoxLayout" name="bboxFieldsLayout">
+                <item>
+                 <layout class="QFormLayout" name="formBbox">
              <item row="0" column="0">
               <widget class="QLabel" name="labelX">
                <property name="text">
@@ -246,6 +238,44 @@
                </property>
               </widget>
              </item>
+                </layout>
+                </item>
+                <item>
+                 <widget class="QLabel" name="labelPixelEstimate">
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="wordWrap">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="bboxFieldsSpacer">
+                  <property name="orientation">
+                   <enum>Qt::Orientation::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>20</width>
+                    <height>40</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item>
+              <widget class="QWidget" name="mapContainer" native="true">
+               <property name="minimumSize">
+                <size>
+                 <width>420</width>
+                 <height>320</height>
+                </size>
+               </property>
+              </widget>
+             </item>
             </layout>
            </widget>
           </item>
@@ -253,9 +283,6 @@
         </item>
         <item>
          <widget class="QLabel" name="labelValidation">
-          <property name="styleSheet">
-           <string notr="true">color: #b00020;</string>
-          </property>
           <property name="text">
            <string/>
           </property>
@@ -354,9 +381,6 @@
         </item>
         <item>
          <widget class="QLabel" name="labelLoadingTitle">
-          <property name="styleSheet">
-           <string notr="true">font-size: 16px; font-weight: 600;</string>
-          </property>
           <property name="text">
            <string>Trwa pobieranie i przetwarzanie danych…</string>
           </property>

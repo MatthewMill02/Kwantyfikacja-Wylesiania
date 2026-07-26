@@ -112,9 +112,9 @@ AnalysisResult MockDataGenerator::generate(const AnalysisRequest &request,
 {
     AnalysisResult result;
 
-    // Jak program88: lata [POCZATEK, KONIEC)
-    for (int year = request.startYear; year < request.endYear; ++year) {
-        const bool cleared = (year == request.endYear - 1);
+    // Jak program9: lata [POCZATEK, KONIEC] włącznie
+    for (int year = request.startYear; year <= request.endYear; ++year) {
+        const bool cleared = (year == request.endYear);
         result.years.insert(year, makeYear(width, height, cleared));
     }
 

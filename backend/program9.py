@@ -7,6 +7,7 @@
 # Uruchom mnie za pomocą: uvicorn NAZWAPLIKUBEZKROPKAPY:app --reload
 
 import ee
+import json
 from fastapi import FastAPI
 from pydantic import BaseModel
 import time
@@ -20,7 +21,7 @@ app = FastAPI(title = "API")
 app.add_middleware(CORSMiddleware, allow_origins = ["*"], allow_credentials = True, allow_methods = ["*"], allow_headers = ["*"])
 
 with open("env.txt", "r", encoding = "utf-8") as file:
-    PROJEKT = file.read()
+    PROJEKT = file.read().strip()
 
 class ANALIZA(BaseModel):
     POCZATEK: int = 2018
@@ -104,6 +105,6 @@ def analiza(req: ANALIZA):
         print(META - START)
 
         WYNIK = {"DANE": DANE, "POWIERZCHNIA": MACIERZ}
-        yield str(WYNIK)
+        yield json.dumps(WYNIK) + "\n"
 
     return StreamingResponse(generuj(), media_type="text/plain")
