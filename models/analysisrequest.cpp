@@ -23,7 +23,7 @@ bool AnalysisRequest::isValid(QString *errorMessage) const
         }
         return false;
     }
-    // program9: lata [POCZATEK, KONIEC] włącznie — min. 2 lata
+    // backend: lata [POCZATEK, KONIEC] włącznie — min. 2 lata
     if (endYear - startYear < 1) {
         if (errorMessage) {
             *errorMessage = QStringLiteral(

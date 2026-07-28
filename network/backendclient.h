@@ -13,7 +13,7 @@ class QNetworkAccessManager;
 class QNetworkReply;
 
 /**
- * Klient HTTP do program9.py (POST /analiza, StreamingResponse).
+ * Klient HTTP do backend.py (POST /analiza, StreamingResponse).
  * Progres: pierwsza linia = liczba lat; potem lata×2 + 1 komunikatów; na końcu JSON.
  */
 class BackendClient : public QObject

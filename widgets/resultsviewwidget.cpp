@@ -569,7 +569,7 @@ void ResultsViewWidget::updateSplitPanel()
     }
 
     const int leftYear = m_result.firstYear();
-    const int rightYear = m_result.lastYear();
+    const int rightYear = m_selectedYear;
     if (leftYear == rightYear) {
         m_splitPanel->clearImages();
         return;

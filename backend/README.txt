@@ -1,7 +1,7 @@
-Backend — program9.py (FastAPI + GEE + streaming progresu)
+Backend — backend.py (FastAPI + GEE + streaming progresu)
 =======================================================
 
-Plik główny: program9.py
+Plik główny: backend.py
 Archiwum:   program88.py (bez streamingu — nieużywany przez start-backend.bat)
 
 1. Skopiuj env.txt.example → env.txt i wpisz nazwę projektu GEE.

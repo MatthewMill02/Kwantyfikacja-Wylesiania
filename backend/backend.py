@@ -1,11 +1,3 @@
-# https://code.earthengine.google.com/ tutaj stwórz projekt a jego nazwę zapisz w pliku env.txt obok tego pliku py.
-# python -m venv .venv
-# venv\Scripts\activate
-# pip install fastapi
-# pip install uvicorn[standard]
-# pip install earthengine-api
-# Uruchom mnie za pomocą: uvicorn NAZWAPLIKUBEZKROPKAPY:app --reload
-
 import ee
 import json
 from fastapi import FastAPI

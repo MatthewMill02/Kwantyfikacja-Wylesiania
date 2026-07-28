@@ -2,8 +2,8 @@
 setlocal EnableExtensions
 cd /d "%~dp0backend"
 
-if not exist "program9.py" (
-    echo [BLAD] Brak pliku backend\program9.py
+if not exist "backend.py" (
+    echo [BLAD] Brak pliku backend\backend.py
     pause
     exit /b 1
 )
@@ -49,12 +49,12 @@ if errorlevel 1 (
 )
 
 echo.
-echo Uruchamiam backend program9 (streaming): http://127.0.0.1:8000
+echo Uruchamiam backend backend (streaming): http://127.0.0.1:8000
 echo Dokumentacja API:                       http://127.0.0.1:8000/docs
 echo Zatrzymanie: Ctrl+C
 echo.
 
-python -m uvicorn program9:app --reload --host 127.0.0.1 --port 8000
+python -m uvicorn backend:app --reload --host 127.0.0.1 --port 8000
 set EXITCODE=%ERRORLEVEL%
 
 echo.

@@ -31,7 +31,7 @@ void finalizeHectares(AnalysisResult *result, const AnalysisRequest &request)
 
 int expectedProgressSteps(int yearCount)
 {
-    // program9: lata × 2 (CHM + BEZ) + 1 (powierzchnia)
+    // backend: lata × 2 (CHM + BEZ) + 1 (powierzchnia)
     return yearCount * 2 + 1;
 }
 
@@ -229,8 +229,8 @@ void BackendClient::onNetworkFinished()
         if (reply->error() == QNetworkReply::ConnectionRefusedError) {
             message = QStringLiteral(
                 "Nie można połączyć się z backendem na %1.\n"
-                "Uruchom start-backend.bat (program9) i upewnij się, że działa uvicorn.")
-                          .arg(m_baseUrl);
+                "Uruchom start-backend.bat (backend) i upewnij się, że działa uvicorn.")
+                           .arg(m_baseUrl);
         }
         emit failed(message);
         reply->deleteLater();
